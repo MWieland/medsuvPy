@@ -5,7 +5,8 @@
 Created on 27.01.2016
 Last modified on 29.01.2016
 Author: Marc Wieland
-Description: 0. Resample and/or slice waterlevel timeseries (optional).
+Description: Hydraulic refill test to derive conductivity from waterlevel measurements.
+             0. Resample and/or slice waterlevel timeseries (optional).
              1. Auto-detect drawdown events in waterlevel timeseries.
              2. Compute Hydraulic conductivity (K) as follows: 
                  K= r / 4 dt * 2.303 * log(h1h2) 
@@ -14,7 +15,7 @@ Description: 0. Resample and/or slice waterlevel timeseries (optional).
                  h2: waterlevel at end of an event (after drawdown)
                  dt: time difference between h1 and h2
              3. Correct K with external evapotranspiration data.
-Reference:
+Reference: 
 ----
 '''
 

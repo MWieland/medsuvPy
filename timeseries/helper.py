@@ -12,7 +12,6 @@ Description: Contains helper functions related to timeseries analysis.
 import sys
 import numpy as np
 import pandas as pd
-import timeseries.peakdetect as pdet
 
 i = 10000
 x = np.linspace(0, 3.5 * np.pi, i)
@@ -171,10 +170,10 @@ def drawdown_event_detection(timeseries, peak_lookahead):
                                    dt: timedifference between start and end.                                
     """
     # detect max and min peaks in timeseries
-    peak_max, peak_min = pdet.peakdetect(timeseries.values, timeseries.index, lookahead=peak_lookahead, delta=0.30)
+    peak_max, peak_min = peakdetect(timeseries.values, timeseries.index, lookahead=peak_lookahead, delta=0.30)
     if len(peak_max) == 0:
         print 'Sorry no peaks found in timeseries. Try with a smaller peak_lookahead value.'
-        sys.exit(0) 
+        sys.exit(0)
     else:
         # convert resulting lists to timeseries
         peak_max = np.array(peak_max)
