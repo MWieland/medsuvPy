@@ -1,20 +1,24 @@
 # medsuvPy
 Python scripts for single-well pump test and hydraulic refill test
 
-Dependencies:
+## Dependencies:
 - Python 2.7
 - Numpy
 - Scipy
 - Matplotlib
 - Pandas
 
-Installation (Ubuntu):
+## Installation 
+### Ubuntu
 $ pip install numpy
+
 $ pip install scipy
+
 $ pip install matplotlib
+
 $ pip install pandas
 
-Installation (Windows):
+### Windows
 Use the Anaconda installer to get the full scipy stack from http://docs.continuum.io/anaconda/install.
 
 References:
