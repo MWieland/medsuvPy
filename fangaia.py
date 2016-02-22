@@ -14,8 +14,7 @@ Description: Hydraulic refill test to derive conductivity from waterlevel measur
                  h1: waterlevel at start of an event (after refill)
                  h2: waterlevel at end of an event (after drawdown)
                  dt: time difference between h1 and h2
-             3. Correct K with external evapotranspiration data.
-Reference: 
+             3. Correct K with external evapotranspiration data. 
 ----
 '''
 
@@ -96,21 +95,6 @@ events['h2corr'] = events['h2'] + events['h2_et'] * dtd / 30.25
 events['Kcorr'] = r / (4 * dts) * 2.303 * np.log(events['h1'] / events['h2corr'])
 events['Kcorr'] = events['Kcorr'] * 100000
 print events
-
-# TODO: redo the correction more precisely
-# Get start and end month and read the according ET values from lookup table
-#events['et_h1_t'] = events['h1_t'].dt.month.replace(range(1,13), df_ev['ETpot'].tolist())
-#events['et_h2_t'] = events['h2_t'].dt.month.replace(range(1,13), df_ev['ETpot'].tolist())
-
-# Compute ET for the duration of the event (dt) - taking into account the number of days per month
-#events['et'] = 
-
-# Correct h2 waterlevel with ET values for each event 
-#events['h2corr'] = events['h2'] + events['et']
-
-# Compute hydraulic conductivity (K) and convert from [m/s] to [Darcy]
-#events['Kcorr'] = r / (4 * np.pi * dt) * 2.303 * np.log(events['h1'] / events['h2corr'])
-#events['Kcorr'] = events['Kcorr'] * 100000
 
 ####################
 ### Plot results ###
