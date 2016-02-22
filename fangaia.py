@@ -31,14 +31,13 @@ dat_ev = 'FANG EP.csv'  # evapotranspiration data
 wdir = '/media/datadrive_/projects/medsuv_heiko/exp_fang/marc/' # work directory
 r = 5   # radius [m] (constant from field  experiment)
 ###
+t_slice = False    # temporal slicing
+slice_t1 = '2013-01-10 00:00'   # slicing start time
+slice_t2 = '2013-12-31 00:00'   # slicing end time
+###
 t_res = False # temporal resampling 
 sr = "D" # temporal resampling rate (e.g., 5min, H, D, M)
 stat = 'mean' # temporal resampling statistics 
-###
-t_slice = False    # temporal slicing
-
-slice_t1 = '2013-01-10 00:00'   # slicing start time
-slice_t2 = '2013-12-31 00:00'   # slicing end time
 ###
 peak_lookahead = 100 #200     # distance to look ahead from a peak candidate to determine if it is the actual peak
 ###################################################################################################################
@@ -58,14 +57,14 @@ df_ev = pd.read_table(wdir + dat_ev, header=0, delimiter=';')
 # Create waterlevel timeseries
 wL = pd.Series(df_wl['wL'].values, index=pd.DatetimeIndex(df_wl['longDATE'].values))
 
-if t_res is True:
-    # Resample waterlevel timeseries
-    wL = wL.resample(sr, how=stat)
-    
 if t_slice is True:
     # Slice waterlevel timeseries
     wL = wL[slice_t1:slice_t2]
 
+if t_res is True:
+    # Resample waterlevel timeseries
+    wL = wL.resample(sr, how=stat)
+    
 #######################
 ### Event detection ###
 #######################

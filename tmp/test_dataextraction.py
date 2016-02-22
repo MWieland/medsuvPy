@@ -30,7 +30,6 @@ import scipy as sp
 import pandas as pd
 import matplotlib.pyplot as plt
 import timeseries.helper as helper
-import matplotlib.dates as mdates
 
 # Parameters to set ########################################################################################################
 dat_wl = 'PITC (DCX22).csv' # water level data [mbar]
@@ -39,13 +38,6 @@ wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/'
 t_slice = True    # temporal slicing
 slice_t1 = '2014-07-01 07:00'   # slicing start time
 slice_t2 = '2014-07-01 15:00'   # slicing end time
-###
-t_int = True # temporal interpolation 
-ir = "1min" # temporal interpolation rate (e.g., 5min, H, D, M)
-if_d = 'cubic' # temporal interpolation function for drawdown events 
-if_f = 'cubic'  # temporal interpolation function for fill events                
-                # {'linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear', , 'quadratic',
-                #  'cubic', 'barycentric', 'krogh', 'polynomial', 'spline', 'piecewise_polynomial', 'pchip'}
 ###
 peak_lookahead = 1 #200     # distance to look ahead from a peak candidate to determine if it is the actual peak
 ############################################################################################################################
@@ -59,24 +51,14 @@ print 'Starttime : ' + str(time.strftime("%H:%M:%S"))
 # Read data from csv to pandas dataframe
 df1 = pd.read_table(wdir + dat_wl, header=0, delimiter=';', parse_dates=True) 
 
-# Convert waterlevel (wL) from [mbar] to [m]
-df1['wL#'] = df1['wL#'] * 0.0101972
-
 # Create waterlevel timeseries
 dates1 = pd.DatetimeIndex(df1['longDATE'].values)
+df1['wL#'] = df1['wL#'] * 0.0101972   # convert waterlevel (wL) from [mbar] to [m]
 wL = pd.Series(df1['wL#'].values, index=dates1)
 
 if t_slice is True:
     # Slice timeseries
     wL = wL[slice_t1:slice_t2]
-
-##########################################################
-### Compute transmissivity (T) (Cooper and Jacob 1946) ###
-##########################################################
-# TODO: this part is not yet correct i think
-fig = plt.figure()
-# Plot raw waterlevel timeseries
-plt.plot(wL.index, wL.values, 'ro', mew=2, ms=8, label='raw (5min)')
 
 #######################
 ### Event detection ###
@@ -90,36 +72,30 @@ print events
 #####################################################################
 fig = plt.figure()
 # Plot raw data wL values
-plt.plot(wL.index, wL.values, 'wo', mew=2, ms=8, label='wL_corr (10min)')
-
-wL_d = None
-wL_f = None
-
+plt.plot(wL.index, wL.values, 'wo', mew=2, ms=8, label='raw (5min)')
+#wL = wL.resample('1min', how='mean')   
+#wL.interpolate(method='cubic').plot()
 for e in range(events.shape[0]):
     if e == 0:
         # Get waterlevels within first drawdown event
         wL_d = wL[events['h1_t'][e]:events['h2_t'][e]]
-        if t_int is True:
-            wL_d = wL_d.resample(ir, how='mean')    
-            wL_d = wL_d.interpolate(method=if_d)
+        wL_d = wL_d.resample('1min', how='mean')    
+        wL_d = wL_d.interpolate(method='cubic')
         wL_d.plot() 
         wL_d = wL_d.to_frame()
         wL_d['event'] = e 
-        if e != events.shape[0]-1:
-            # Get waterlevels within first fill event
-            wL_f = wL[events['h2_t'][e]:events['h1_t'][e+1]]
-            if t_int is True:
-                wL_f = wL_f.resample(ir, how='mean')
-                wL_f = wL_f.interpolate(method=if_f)
-            wL_f.plot()
-            wL_f = wL_f.to_frame()
-            wL_f['event'] = e
+        # Get waterlevels within first fill event
+        wL_f = wL[events['h2_t'][e]:events['h1_t'][e+1]]
+        wL_f = wL_f.resample('1min', how='mean')
+        wL_f = wL_f.interpolate(method='cubic')
+        wL_f.plot()
+        wL_f = wL_f.to_frame()
+        wL_f['event'] = e
     else:
         # Get waterlevels within all other drawdown events
         wL_d_ = wL[events['h1_t'][e]:events['h2_t'][e]]
-        if t_int is True:
-            wL_d_ = wL_d_.resample(ir, how='mean')    
-            wL_d_ = wL_d_.interpolate(method=if_d)       
+        wL_d_ = wL_d_.resample('1min', how='mean')    
+        wL_d_ = wL_d_.interpolate(method='cubic')       
         wL_d_.plot()
         wL_d_ = wL_d_.to_frame()
         wL_d_['event'] = e 
@@ -127,9 +103,8 @@ for e in range(events.shape[0]):
         if e != events.shape[0]-1:
             # Get waterlevels within all other fill events
             wL_f_ = wL[events['h2_t'][e]:events['h1_t'][e+1]]
-            if t_int is True:
-                wL_f_ = wL_f_.resample(ir, how='mean')
-                wL_f_ = wL_f_.interpolate(method=if_f)
+            wL_f_ = wL_f_.resample('1min', how='mean')
+            wL_f_ = wL_f_.interpolate(method='cubic')
             wL_f_.plot()
             wL_f_ = wL_f_.to_frame()
             wL_f_['event'] = e 
@@ -145,7 +120,19 @@ plt.tight_layout()
 plt.savefig(wdir + 'int_cubic_separated.png', dpi=300)
 plt.show()
 plt.close()
+'''
+######################
+### Results output ###
+######################
+# Add column names to dataframes
+wL_d.columns = ['wL', 'event']
+wL_f.columns = ['wL', 'event']
 
+# write events dataframe to csv
+events.to_csv(wdir + 'pisc_events.csv', sep=';')
+wL_d.to_csv(wdir + 'pisc_events_wL_drawdown.csv', sep=';')
+wL_f.to_csv(wdir + 'pisc_events_wL_fill.csv', sep=';')
+'''
 # Get run time
 endtime = time.time()
 time_total = endtime-starttime
