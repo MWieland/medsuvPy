@@ -37,15 +37,15 @@ import matplotlib.pyplot as plt
 import timeseries.helper as helper
 
 # Parameters to set ########################################################################################################
-wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/' # Work directory
+wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/dcx22/' # Work directory
 dat_wl = 'PITC (DCX22).csv' # Water level data [mbar]
 ###
 c_ap = True # Correct water level with air pressure data
 dat_bar = 'AGN3baro.csv'    # Air pressure data [cmH2O]
 ###
 t_slice = True    # Temporal slicing
-slice_t1 = '2014-07-01 07:00'   # Slicing start time
-slice_t2 = '2014-07-01 15:00'   # Slicing end time
+slice_t1 = '2014-06-30 00:01'   # Slicing start time
+slice_t2 = '2014-10-30 23:59'   # Slicing end time
 ###
 t_res = True    # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
@@ -277,10 +277,12 @@ events = events[events['T'] != 0.0]
 
 # Plot Transmissivity (T) over all events
 plt.plot(events['h2_t'], events['T'], 'r-')
-plt.plot(events['h2_t'], events['T'], 'ro')
+#plt.plot(events['h2_t'], events['T'], 'ro')
 plt.title('Pisciarelli Tennis Club (KELLER DCX22 - ' + sr + ' ' + stat + ')')
 plt.xlabel('Time')
 plt.ylabel('Transmissivity [m^2/s]')
+#plt.ylim(0, 0.0025)
+plt.xticks(rotation=15)
 plt.grid()
 plt.tight_layout()
 plt.savefig(wdir + 'pisc_transmissivity.png', dpi=300)
@@ -289,10 +291,12 @@ plt.close()
 
 # Plot Storage coefficient (S) over all events
 plt.plot(events['h2_t'], events['S'], 'r-')
-plt.plot(events['h2_t'], events['S'], 'ro')
+#plt.plot(events['h2_t'], events['S'], 'ro')
 plt.title('Pisciarelli Tennis Club (KELLER DCX22 - ' + sr + ' ' + stat + ')')
 plt.xlabel('Time')
 plt.ylabel('Storage coefficient [-]')
+#plt.ylim(-25, 25)
+plt.xticks(rotation=15)
 plt.grid()
 plt.tight_layout()
 plt.savefig(wdir + 'pisc_storagecoefficient.png', dpi=300)
