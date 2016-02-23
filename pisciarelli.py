@@ -3,7 +3,7 @@
     pisciarelli.py
 ---------------------------
 Created on 08.02.2016
-Last modified on 22.02.2016
+Last modified on 23.02.2016
 Author: Marc Wieland
 Description: Single-well pump test to derive transmissivity and storage coefficient from waterlevel measurements.
              0. Convert units of input data to [m] (optional)
@@ -38,28 +38,28 @@ import timeseries.helper as helper
 
 # Parameters to set ########################################################################################################
 site_name = 'Pisciarelli Tennis Club'
-instrument = 'EDL'
+instrument = 'KELLER DCX22'
 ###
-wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/edl/' # Work directory
-dat_wl = 'PITC (EDL).csv' # File that holds the water level data 
+wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/dcx22/' # Work directory
+dat_wl = 'PITC (DCX22).csv' # File that holds the water level data 
 col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
-col_wl = 'wL_m' # Column that holds the water level measures in [m] or [mbar]
-mbar2m = False  # Convert water level measures from [mbar] to [m]
+col_wl = 'wL#' # Column that holds the water level measures in [m] or [mbar]
+mbar2m = True  # Convert water level measures from [mbar] to [m]
 ###
-c_ap = False    # Correct water level with air pressure data
+c_ap = True    # Correct water level with air pressure data
 dat_ap = 'AGN3baro.csv'    # File that holds the air pressure data
 col_ap_t = 'longDATE'  # Column that holds the measurement timestamps
 col_ap = 'aP'   # Column that holds the air pressure measures in [mH2O] or [cmH2O]
-cm2m = False    # Convert air pressure measures from [cmH2O] to [mH2O]
+cm2m = True    # Convert air pressure measures from [cmH2O] to [mH2O]
 ###
-c_g = False     # Convert water level to meters below ground
+c_g = True     # Convert water level to meters below ground
 g = 33.7        # Ground level [m]
 ###
 t_slice = True    # Temporal slicing
-slice_t1 = '2014-05-19 13:00'   # Slicing start time
-slice_t2 = '2014-05-20 13:00'   # Slicing end time
+slice_t1 = '2014-06-30 00:01'   # Slicing start time
+slice_t2 = '2014-10-30 23:59'   # Slicing end time
 ###
-t_res = False   # Temporal resampling 
+t_res = True   # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
 stat = 'mean'   # Temporal resampling statistics 
 ###
@@ -232,7 +232,7 @@ for e in range(len(eid)):
     plt.plot(wL_d[wL_d['event'] == eid[e]].index, wL_d[wL_d['event'] == eid[e]]['wL'].values, 'bo')
     plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'g-', label='water level')
     plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'go')
-    plt.title(site_name + '(' + instrument + ') - Event ' + str(eid[e]))
+    plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
     plt.xlabel('Time')
     plt.ylabel('wL [m]')
     plt.grid()
@@ -244,7 +244,7 @@ for e in range(len(eid)):
     # Plot event straight line fit
     plt.plot(x, a * x + b, '--')
     plt.plot(x, y, 'ro')
-    plt.title(site_name + '(' + instrument + ') - Event ' + str(eid[e]))
+    plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
     plt.annotate('T = ' + str(T) + ' m^2/s', xy=(1000, 1000), xytext=(1000, 1000))
     plt.xlabel('X')
     plt.ylabel('Y')
@@ -263,10 +263,10 @@ ax2 = ax1.twinx()
 
 # Plot waterlevel timeseries with event markers and airpressure data
 if t_res is True:
-    title = site_name + '(' + instrument + ' - ' + sr + ' ' + stat + ')'
+    title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
     plt_save = wdir + 'wL_' + sr + stat + '.png'    
 else:
-    title = site_name + '(' + instrument + ')'
+    title = site_name + ' (' + instrument + ')'
     plt_save = wdir + 'wL.png'
 ax1.plot(wL.index, wL.values, 'b-', label='wL')
 # Add event markers
@@ -285,7 +285,7 @@ plt.xlabel('Time')
 plt.grid()
 plt.tight_layout()
 plt.savefig(plt_save, dpi=300)
-plt.show()
+#plt.show()
 plt.close()
 
 # Reduce events to only those where T and S could be computed (so where we have drawdown and fill parts)
@@ -293,10 +293,10 @@ events = events[events['T'] != 0.0]
 
 # Plot Transmissivity (T) over all events
 if t_res is True:
-    title = site_name + '(' + instrument + ' - ' + sr + ' ' + stat + ')'
+    title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
     plt_save = wdir + 'transmissivity_' + sr + stat + '.png'    
 else:
-    title = site_name + '(' + instrument + ')'
+    title = site_name + ' (' + instrument + ')'
     plt_save = wdir + 'transmissivity.png'
 plt.plot(events['h2_t'], events['T'], 'r-')
 #plt.plot(events['h2_t'], events['T'], 'ro')
