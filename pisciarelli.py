@@ -57,7 +57,7 @@ g = 33.7        # Ground level [m]
 ###
 t_slice = True    # Temporal slicing
 slice_t1 = '2014-06-30 00:01'   # Slicing start time
-slice_t2 = '2014-10-30 23:59'   # Slicing end time
+slice_t2 = '2014-06-30 23:59'   # Slicing end time
 ###
 t_res = True   # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
