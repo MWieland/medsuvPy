@@ -206,7 +206,8 @@ for e in range(len(eid)):
             dt.append(wL_e.index[i] - wL_e.index[i-1])
     
     # Compute cummulative dwL and dt (note: this would be "s'" and "t'" in Zheng et al.)
-    dwL_e = pd.DataFrame({'dwL' : np.cumsum(dwL),
+    # TODO: not sure here about np.abs()
+    dwL_e = pd.DataFrame({'dwL' : np.cumsum(np.abs(dwL)),
                           'dt' : np.cumsum(dt)})
     # Convert timedelta64 to float and unit in [s]
     dwL_e['dt'] = dwL_e['dt'] / np.timedelta64(1, 's')
