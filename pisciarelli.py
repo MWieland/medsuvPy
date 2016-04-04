@@ -40,11 +40,14 @@ import timeseries.helper as helper
 site_name = 'Pisciarelli Tennis Club'
 instrument = 'KELLER DCX22'
 ###
-wdir = '/media/datadrive_/projects/medsuv_heiko/exp_pitc/marc/dcx22/' # Work directory
+wdir = '/media/marc/GFZDRIVE/datadrive/projects/medsuv_heiko/exp_pitc/marc/dcx22_test/' # Work directory
 dat_wl = 'PITC (DCX22).csv' # File that holds the water level data 
 col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
 col_wl = 'wL#' # Column that holds the water level measures in [m] or [mbar]
 mbar2m = True  # Convert water level measures from [mbar] to [m]
+###
+c_g = True      # Convert water level to meters below ground
+g = 33.7        # Ground level [m]
 ###
 c_ap = True    # Correct water level with air pressure data
 dat_ap = 'AGN3baro.csv'    # File that holds the air pressure data
@@ -52,12 +55,9 @@ col_ap_t = 'longDATE'  # Column that holds the measurement timestamps
 col_ap = 'aP'   # Column that holds the air pressure measures in [mH2O] or [cmH2O]
 cm2m = True    # Convert air pressure measures from [cmH2O] to [mH2O]
 ###
-c_g = True     # Convert water level to meters below ground
-g = 33.7        # Ground level [m]
-###
 t_slice = True    # Temporal slicing
 slice_t1 = '2014-06-30 00:01'   # Slicing start time
-slice_t2 = '2014-10-30 23:59'   # Slicing end time
+slice_t2 = '2014-07-01 23:59'   # Slicing end time
 ###
 t_res = True   # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
@@ -78,6 +78,10 @@ r = 0.5         # Radius [m]
 
 starttime=time.time()
 print 'Starttime : ' + str(time.strftime("%H:%M:%S"))
+
+# Suppress SettingWithCopyWarning that appears in this script as a false positive when doing
+# something like events['T'][events.index == eid[e]] = T
+pd.options.mode.chained_assignment = None
 
 ####################################
 ### Data input and preprocessing ###
@@ -122,7 +126,7 @@ if c_g is True:
 #######################
 # Detect events in waterlevel timeseries and return h1, h2 and dt
 events = helper.drawdown_event_detection(wL, peak_lookahead)
-print events
+#print events
 
 ###############################################################
 ### Get waterlevels for drawdown and fill around each event ###
@@ -206,7 +210,6 @@ for e in range(len(eid)):
             dt.append(wL_e.index[i] - wL_e.index[i-1])
     
     # Compute cummulative dwL and dt (note: this would be "s'" and "t'" in Zheng et al.)
-    # TODO: not sure here about np.abs()
     dwL_e = pd.DataFrame({'dwL' : np.cumsum(np.abs(dwL)),
                           'dt' : np.cumsum(dt)})
     # Convert timedelta64 to float and unit in [s]
