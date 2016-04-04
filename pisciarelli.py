@@ -3,7 +3,7 @@
     pisciarelli.py
 ---------------------------
 Created on 08.02.2016
-Last modified on 23.02.2016
+Last modified on 04.04.2016
 Author: Marc Wieland
 Description: Single-well pump test to derive transmissivity and storage coefficient from waterlevel measurements.
              0. Convert units of input data to [m] (optional)
@@ -16,7 +16,7 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
              7. Compute Transmissivity (T) in [m^2/s]:
                  T = Q / (4 * np.pi * a)
                 and Storage coefficient (S) in [m] according to Zheng et al.:
-                 S = -4 * T * b / a * (r * r)
+                 S = -(4 * T * b) / (a * (r * r))
                  Q = pumping rate
                  a = slope of straight line fit
                  b = intercept of straight line fit
@@ -224,7 +224,7 @@ for e in range(len(eid)):
     events['T'][events.index == eid[e]] = T
     
     # Compute storage coefficient (S) in [m]
-    S = -4 * T * b / a * (r * r) 
+    S = -(4 * T * b) / (a * (r * r))
     events['S'][events.index == eid[e]] = S
     
     # Plot event water level
