@@ -16,7 +16,7 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
              7. Compute Transmissivity (T) in [m^2/s]:
                  T = Q / (4 * np.pi * a)
                 and Storage coefficient (S) in [m] according to Zheng et al.:
-                 S = -4 * T * b / a * (r * r)
+                 S = -(4 * T * b) / (a * (r * r))
                  Q = pumping rate
                  a = slope of straight line fit
                  b = intercept of straight line fit
@@ -120,7 +120,7 @@ if c_ap is True:
 if c_g is True:
     # Convert waterlevel to meters below ground
     wL = wL - g
-#wL = wL * -1
+wL = wL * -1
 
 #######################
 ### Event detection ###
@@ -214,7 +214,7 @@ for e in range(len(eid)):
             print dt[-1]
     
     # Compute cummulative dwL and dt (note: this would be "s'" and "t'" in Zheng et al.)
-    dwL_e = pd.DataFrame({'dwL' : np.cumsum(dwL),
+    dwL_e = pd.DataFrame({'dwL' : np.cumsum(np.abs(dwL)),
                           'dt' : np.cumsum(dt)})
                           
     

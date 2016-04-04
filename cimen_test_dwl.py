@@ -17,22 +17,12 @@ Q = 0.05        # Pumping rate [cubic meters per second]
 r = 50          # Radius [m]
 tp = 4200       # Pumping time [s]
 
-# Read waterlevel (wL) [m] and delta t (dt) [min]
-wL = [0.593,0.506,0.415,0.354,0.309,0.276,0.249,0.208,0.178,0.138,0.111,0.085,0.068,0.045,0.032,0.023]
-dt_ = [0,5,10,15,20,25,30,40,50,70,90,120,150,210,270,330]
+# Read delta waterlevel (dwL) [m] and delta t (dt) [min]
+dwL = [0.506,0.415,0.354,0.309,0.276,0.249,0.208,0.178,0.138,0.111,0.085,0.068,0.045,0.032,0.023]
+dt = [5,10,15,20,25,30,40,50,70,90,120,150,210,270,330]
 
-# convert dt in [s]
-dt_ = np.multiply(dt_,60)
-
-# Get delta waterlevel (dwL)
-dwL = []
-dt = []
-x=0
-for i in range(len(wL)):
-    if i != 0:
-        x += 1
-        dwL.append(wL[i] - wL[i-1])
-        dt.append(dt_[x])
+# convert dt to [s]
+dt = np.multiply(dt, 60)
 
 # Compute cummulative dwL and dt (note: this would be "s'" and "t'" in Zheng et al.)
 # TODO: not sure about this part here if i really need to use the cummulative here -> the axis values of the
@@ -48,7 +38,7 @@ print dwL_e
 x = dwL_e['dt'] * np.log(dwL_e['dt'] + dwL_e['tp'] / dwL_e['dt'])
 y = dwL_e['dt'] * dwL_e['dwL']
 
-#x = x.fillna(0)
+x = x.fillna(0)
 print x
 print y
 
