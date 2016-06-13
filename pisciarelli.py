@@ -40,7 +40,7 @@ import timeseries.helper as helper
 site_name = 'Pisciarelli Tennis Club'
 instrument = 'KELLER DCX22'
 ###
-wdir = '/media/marc/GFZDRIVE/datadrive/projects/medsuv_heiko/exp_pitc/marc/dcx22_test/' # Work directory
+wdir = '/home/mwieland/Projects/medsuv_heiko/exp_pitc/marc/dcx22_test/' # Work directory
 dat_wl = 'PITC (DCX22).csv' # File that holds the water level data 
 col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
 col_wl = 'wL#' # Column that holds the water level measures in [m] or [mbar]
