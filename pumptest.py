@@ -1,19 +1,17 @@
 '''
 ---------------------------
-    pisciarelli.py
+    pumptest.py
 ---------------------------
 Created on 08.02.2016
 Last modified on 20.09.2016
 Author: Marc Wieland
 Description: Single-well pump test to derive transmissivity and storage coefficient from waterlevel measurements.
-             0. Optional: Convert units of input data to [m]
+             0. Optional: Convert units of input data to [m below surface]
              1. Optional: Resample and/or slice timeseries
              2. Optional: Correct waterlevel with airpressure data
-             3. Optional: Convert water level to [m below ground] 
-             4. Optional: Auto-detect events in waterlevel timeseries.
-             5. Separate waterlevels for each event between drawdown and fill
-             6. Optional: Interpolate drawdown and recovery parts separately
-             7. Compute Transmissivity (T) in [m^2/s]:
+             3. Detect drawdown and fill events in waterlevel timeseries (automatic or manual).
+             4. Optional: Interpolate drawdown and fill (recovery) parts separately
+             5. Compute Transmissivity (T) in [m^2/s]:
                  T = Q / (4 * np.pi * a)
                 and Storage coefficient (S) in [m] according to Zheng et al.:
                  S = -(4 * T * b) / (a * (r * r))
@@ -21,12 +19,14 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
                  a = slope of straight line fit
                  b = intercept of straight line fit
                  r = radius
-             8. Write events, waterlevels drawdown and waterlevels recovery into csv files and plot figures  
+             6. Write events, waterlevels drawdown and fill (recovery) data into csv files and plot figures  
 Reference: Zheng, Guo and Lei (2005): An improved straight-line fitting method for analyzing pumping 
             test recovery data. Ground water, 43 (6), 939-942.
            Cooper and Jacob (1946): A generalized method for evaluating formation constants
             and summarizing well-field history. Transactions of the American Geophysical
             Union, 27 (5), 526-534.
+            
+Note: Fill events are currently identified as time between two succeeding drawdown events.
 ----
 '''
 
@@ -37,23 +37,20 @@ import matplotlib.pyplot as plt
 import timeseries.helper as helper
 
 # Parameters to set ########################################################################################################
-site_name = 'Drawdown Observation Well '
+site_name = 'Observation Well'
 instrument = 'USDI Reference Data'
 ###
-wdir = '/home/mwieland/Projects/medsuv_heiko/usdi_reference/' # Work directory
+wdir = '/home/mwieland/eclipse_workspace/python/medsuv/testdata/' # Work directory
 dat_wl = 'usdi_observationwell.csv' # File that holds the water level data 
-col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
-col_wl = 'depth_m' # Column that holds the water level measures in [m] or [mbar]
-mbar2m = False  # Convert water level measures from [mbar] to [m]
+col_wl_t = 't'  # Column that holds the measurement timestamps
+col_wl = 'wl_m' # Column that holds the water level measures in [m below surface] or [mbar]
+mbar2m = False  # Convert water level measures from [mbar] to [m below surface]
 ###
 c_ap = False    # Correct water level with air pressure data
 dat_ap = 'AGN3baro.csv'    # File that holds the air pressure data
-col_ap_t = 'longDATE'  # Column that holds the measurement timestamps
+col_ap_t = 't'  # Column that holds the measurement timestamps
 col_ap = 'aP'   # Column that holds the air pressure measures in [mH2O] or [cmH2O]
 cm2m = False    # Convert air pressure measures from [cmH2O] to [mH2O]
-###
-c_g = True     # Convert water level to meters below ground (NOTE: negative values needed if below ground)
-g = 0        # Ground level [m]
 ###
 t_slice = False    # Temporal slicing
 slice_t1 = '2014-06-30 00:01'   # Slicing start time
@@ -70,12 +67,13 @@ if_f = 'cubic'  # Temporal interpolation function for fill events
                 # {'linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear', , 'quadratic',
                 #  'cubic', 'barycentric', 'krogh', 'polynomial', 'spline', 'piecewise_polynomial', 'pchip'}
 ###
-eventdetection = 'manual'  # Event detection ('auto': automatic; 'manual': manual)
-peak_lookahead = 1  # Event detection ('auto'): distance to look ahead from a peak candidate to determine the actual peak
-events = {'h1' : [18.654, 18.742], 'h1_t' : ['1975-05-19 08:40', '1975-05-20 11:20'], 'h2' : [19.221, 18.742], 'h2_t' : ['1975-05-19 22:00', '1975-05-20 11:20']}  # Event detection ('manual'): provide h1, h1_ to identify an event 
+eventdetection = 'manual'  # Drawdown event detection ('auto': automatic; 'manual': manual)
+peak_lookahead = 1  # Drawdown event detection ('auto'): distance to look ahead from a peak candidate to determine the actual peak
+# Drawdown event detection ('manual'): provide lists of start water level and timestamp (h1, h1_t) and stop water level and timestamps (h2, h2_t) of drawdown events 
+events = {'h1' : [18.654, 18.742], 'h1_t' : ['1975-05-19 08:40', '1975-05-20 11:20'], 'h2' : [19.221, 18.742], 'h2_t' : ['1975-05-19 22:00', '1975-05-20 11:20']}  
 ###
-Q = 4.6128    # Pumping rate [cubic meters per second]
-r = 30.48          # Radius [m]
+Q = 4.61    # Pumping rate [m3/min]
+r = 30.48   # Radius [m]
 ############################################################################################################################
 
 starttime=time.time()
@@ -116,27 +114,24 @@ if c_ap is True:
     # Correct waterlevel with airpressure data
     wL = wL - aP
 
-if c_g is True:
-    # Convert waterlevel to meters below ground
-    wL = g - wL
-
-#######################
-### Event detection ###
-#######################
-
+################################
+### Drawdown event detection ###
+################################
 if eventdetection is 'auto':
-    # Detect events in waterlevel timeseries and return h1, h2 and dt
+    # Detect drawdown events in waterlevel timeseries and return h1, h2 and dt
     events = helper.drawdown_event_detection(wL, peak_lookahead)
+    print 'Drawdown events detected (auto)'
     print events
 else:
     events = pd.DataFrame(events)
     events['h1_t'] = pd.to_datetime(events['h1_t'])
     events['h2_t'] = pd.to_datetime(events['h2_t'])
     events['dt'] = events['h2_t'] - events['h1_t']
+    print 'Drawdown events detected (manual)'
     print events
     
 ###############################################################
-### Get waterlevels for drawdown and fill around each event ###
+### Get waterlevels for drawdown and fill (recovery) events ###
 ###############################################################
 wL_d = None
 wL_f = None
@@ -189,8 +184,6 @@ if wL_d is not None:
 if wL_f is not None:
     wL_f.columns = ['wL', 'event']
 
-
-print wL_f
 #################################################################################
 ### Compute Transmissivity (T) and Storage coefficient (S) (Zheng et al 2005) ###
 #################################################################################
@@ -202,14 +195,20 @@ events['S'] = 0
 # events['T'][events.index == eid[e]] = T
 pd.options.mode.chained_assignment = None
 
-#TODO: check is it correct to use fill events and not drawdown event?!!!!
 # Get fill event ids
 eid = wL_f['event'].unique()
 
 for e in range(len(eid)):
-    # Get tp for fill event (converted to float and unit in [s])
-    tp = events[events.index == eid[e]]['dt'] / np.timedelta64(1, 's')
+    print '---------'
+    print 'Event ' + str(e)
+    
+    # Get tp for fill event (converted to float and unit in [min])
+    tp = events[events.index == eid[e]]['dt'] / np.timedelta64(1, 'm')
     tp = tp.values[0]
+    
+    # Get waterlevels within drawdown event
+    wL_d_e = wL_d[wL_d['event'] == eid[e]]
+    wL_d_e.columns = ['wL', 'event']
     
     # Get waterlevels within fill event
     wL_e = wL_f[wL_f['event'] == eid[e]]
@@ -217,43 +216,54 @@ for e in range(len(eid)):
     
     # Get delta waterlevel (dwL) and delta t (dt)
     dwL = []
+    dwL_d = []
     dt = []
     for i in range(len(wL_e)):
         if i != 0:
             dwL.append(wL_e['wL'].values[i] - wL_e['wL'].values[i-1])
+            dwL_d.append(wL_d_e['wL'].values[i] - wL_d_e['wL'].values[i-1])           
             dt.append(wL_e.index[i] - wL_e.index[i-1])
     
-    # Compute cummulative dwL and dt (note: this would be "s'" and "t'" in Zheng et al.)
+    # Add last value of cummulative delta waterlevel of drawdown event to first value of cummulative delta waterlevel of fill event
+    dwL[0] = dwL[0] + np.cumsum(dwL_d)[-1]
+    
+    # Compute cummulative dwL and dt for fill event (note: this would be "s'" and "t'" in Zheng et al.)
     dwL_e = pd.DataFrame({'dwL' : np.cumsum(dwL),
                           'dt' : np.cumsum(dt)})
-    print dwL_e
-    # Convert timedelta64 to float and unit in [s]
-    dwL_e['dt'] = dwL_e['dt'] / np.timedelta64(1, 's')
+    
+    # Convert timedelta64 to float and unit in [min]
+    dwL_e['dt'] = dwL_e['dt'] / np.timedelta64(1, 'm')
     dwL_e['tp'] = tp
-    #print dwL_e
     
     # Fit straight line
-    x = dwL_e['dt'] * np.log(dwL_e['dt'] + dwL_e['tp'] / dwL_e['dt'])
+    x = dwL_e['dt'] * np.log((dwL_e['dt'] + dwL_e['tp']) / dwL_e['dt'])
     y = dwL_e['dt'] * dwL_e['dwL']
     
     a, b = np.polyfit(x, y, 1)
+    print 'a : ' + str(a)
+    print 'b : ' + str(b)
     
     # Compute transmissivity (T) in [m^2/s]
     T = Q / (4 * np.pi * a)
     events['T'][events.index == eid[e]] = T
+    print 'T : ' + str(T)
     
-    # Compute storage coefficient (S) in [m]
+    # Compute storage coefficient (S)
     S = -(4 * T * b) / (a * (r * r))
     events['S'][events.index == eid[e]] = S
+    print 'S : ' + str(S)
     
-    # Plot event water level
-    plt.plot(wL_d[wL_d['event'] == eid[e]].index, wL_d[wL_d['event'] == eid[e]]['wL'].values, 'b-', label='water level')
+    # Plot event water level (invert y axis to account for meters below surface)
+    plt.plot(wL_d[wL_d['event'] == eid[e]].index, wL_d[wL_d['event'] == eid[e]]['wL'].values, 'b-', label='drawdown')
     plt.plot(wL_d[wL_d['event'] == eid[e]].index, wL_d[wL_d['event'] == eid[e]]['wL'].values, 'bo')
-    plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'g-', label='water level')
+    plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'g-', label='fill (recovery)')
     plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'go')
     plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
     plt.xlabel('Time')
-    plt.ylabel('wL [m]')
+    plt.ylabel('wL below surface [m]')
+    plt.legend()
+    ax = plt.gca()
+    ax.invert_yaxis()
     plt.grid()
     plt.tight_layout()
     plt.savefig(wdir + 'wL_event_' + str(eid[e]) + '.png', dpi=300)
@@ -264,7 +274,7 @@ for e in range(len(eid)):
     plt.plot(x, a * x + b, '--')
     plt.plot(x, y, 'ro')
     plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
-    plt.annotate('T = ' + str(T) + ' m^2/s', xy=(1000, 1000), xytext=(1000, 1000))
+    plt.annotate('T = ' + str(T) + ' m^2/min', xy=(10, 10), xytext=(10, 10))
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.grid()
@@ -272,89 +282,90 @@ for e in range(len(eid)):
     plt.savefig(wdir + 'linefit_event_' + str(eid[e]) + '.png', dpi=300)
     #plt.show()
     plt.close()
-
+print '---------'
+    
 ####################
 ### Plot results ###
 ####################
 fig = plt.figure()
 ax1 = fig.add_subplot(1,1,1)
 ax2 = ax1.twinx()
-'''
-# Plot waterlevel timeseries with event markers and airpressure data
-if t_res is True:
-    title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
-    plt_save = wdir + 'wL_' + sr + stat + '.png'    
-else:
-    title = site_name + ' (' + instrument + ')'
-    plt_save = wdir + 'wL.png'
-ax1.plot(wL.index, wL.values, 'b-', label='wL')
-# Add event markers
-ax1.plot(events['h1_t'], events['h1'], 'r+', mew=2, ms=8, label='h1')
-ax1.plot(events['h2_t'], events['h2'], 'g+', mew=2, ms=8, label='h2')
-ax1.set_ylabel('wL [m]')
-ax1.legend(loc='lower left')
-if c_ap is True:
-    # Add air pressure
-    ax2.plot(aP.index, aP.values, 'r-', label='aP')
-    ax2.set_ylabel('aP [mH2O]')
-    ax2.legend(loc='lower right')
-#plt.xticks(rotation=15)
-plt.title(title)
-plt.xlabel('Time')
-plt.grid()
-plt.tight_layout()
-plt.savefig(plt_save, dpi=300)
-#plt.show()
-plt.close()
-'''
+
+if c_ap is True:    
+    # Plot waterlevel timeseries with event markers and airpressure data if used
+    if t_res is True:
+        title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
+        plt_save = wdir + 'wL_' + sr + stat + '.png'    
+    else:
+        title = site_name + ' (' + instrument + ')'
+        plt_save = wdir + 'wL.png'
+    ax1.plot(wL.index, wL.values, 'b-', label='wL')
+    # Add event markers
+    ax1.plot(events['h1_t'], events['h1'], 'r+', mew=2, ms=8, label='h1')
+    ax1.plot(events['h2_t'], events['h2'], 'g+', mew=2, ms=8, label='h2')
+    ax1.set_ylabel('wL [m]')
+    ax1.legend(loc='lower left')
+    if c_ap is True:
+        # Add air pressure
+        ax2.plot(aP.index, aP.values, 'r-', label='aP')
+        ax2.set_ylabel('aP [mH2O]')
+        ax2.legend(loc='lower right')
+    #plt.xticks(rotation=15)
+    plt.title(title)
+    plt.xlabel('Time')
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(plt_save, dpi=300)
+    #plt.show()
+    plt.close()
+
 # Reduce events to only those where T and S could be computed (so where we have drawdown and fill parts)
 events = events[events['T'] != 0.0]
 
-# Plot Transmissivity (T) over all events
-if t_res is True:
-    title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
-    plt_save = wdir + 'transmissivity_' + sr + stat + '.png'    
-else:
-    title = site_name + ' (' + instrument + ')'
-    plt_save = wdir + 'transmissivity.png'
-plt.plot(events['h2_t'], events['T'], 'r-')
-#plt.plot(events['h2_t'], events['T'], 'ro')
-plt.title(title)
-plt.xlabel('Time')
-plt.ylabel('Transmissivity [m^2/s]')
-#plt.ylim(0, 0.0025)
-plt.xticks(rotation=15)
-plt.grid()
-plt.tight_layout()
-plt.savefig(plt_save, dpi=300)
-#plt.show()
-plt.close()
-
-# Plot Storage coefficient (S) over all events
-if t_res is True:
-    title = site_name + '(' + instrument + ' - ' + sr + ' ' + stat + ')'
-    plt_save = wdir + 'storagecoefficient_' + sr + stat + '.png'    
-else:
-    title = site_name + '(' + instrument + ')'
-    plt_save = wdir + 'storagecoefficient.png'
-plt.plot(events['h2_t'], events['S'], 'r-')
-#plt.plot(events['h2_t'], events['S'], 'ro')
-plt.title(title)
-plt.xlabel('Time')
-plt.ylabel('Storage coefficient [-]')
-#plt.ylim(-25, 25)
-plt.xticks(rotation=15)
-plt.grid()
-plt.tight_layout()
-plt.savefig(plt_save, dpi=300)
-#plt.show()
-plt.close()
+if len(events) > 1:
+    # Plot Transmissivity (T) over all events if more than one drawdown and fill event is detected
+    if t_res is True:
+        title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
+        plt_save = wdir + 'transmissivity_' + sr + stat + '.png'    
+    else:
+        title = site_name + ' (' + instrument + ')'
+        plt_save = wdir + 'transmissivity.png'
+    plt.plot(events['h2_t'], events['T'], 'r-')
+    #plt.plot(events['h2_t'], events['T'], 'ro')
+    plt.title(title)
+    plt.xlabel('Time')
+    plt.ylabel('Transmissivity [m^2/min]')
+    #plt.ylim(0, 0.0025)
+    plt.xticks(rotation=15)
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(plt_save, dpi=300)
+    #plt.show()
+    plt.close()
+    
+    # Plot Storage coefficient (S) over all events
+    if t_res is True:
+        title = site_name + '(' + instrument + ' - ' + sr + ' ' + stat + ')'
+        plt_save = wdir + 'storagecoefficient_' + sr + stat + '.png'    
+    else:
+        title = site_name + '(' + instrument + ')'
+        plt_save = wdir + 'storagecoefficient.png'
+    plt.plot(events['h2_t'], events['S'], 'r-')
+    #plt.plot(events['h2_t'], events['S'], 'ro')
+    plt.title(title)
+    plt.xlabel('Time')
+    plt.ylabel('Storage coefficient [-]')
+    #plt.ylim(-25, 25)
+    plt.xticks(rotation=15)
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(plt_save, dpi=300)
+    #plt.show()
+    plt.close()
 
 ######################
 ### Results output ###
 ######################
-print events
-
 # Write events dataframe to csv
 events.to_csv(wdir + 'events.csv', sep=';')
 
@@ -370,59 +381,3 @@ if wL_f is not None:
 endtime = time.time()
 time_total = endtime-starttime
 print str(time_total) + ' sec'
-
-'''
-##########################################################
-### Compute transmissivity (T) (Cooper and Jacob 1946) ###
-##########################################################
-for e in range(events.shape[0]):
-    # TODO: this part is not yet correct i think
-    # Get all waterlevels within a drawdown event
-    wL_e = wL[events['h1_t'][e]:events['h2_t'][e]]
-    print wL_e
-    
-    # Get delta t (dt) and delta waterlevel (dwL) (=single drawdown values)
-    dwL = []
-    dt = []
-    for i in range(len(wL_e)):
-        if i != 0:
-            dwL.append(wL_e.values[i-1] - wL_e.values[i])
-            dt.append(wL_e.index[i] - wL_e.index[i-1])
-    dwL_e = pd.DataFrame({'dwL' : dwL,
-                          'dt' : np.cumsum(dt)})
-    dwL_e['dt'] = dwL_e['dt'] / np.timedelta64(1, 'm')    # convert timedelta64 to float
-    print dwL_e
-    
-    # Fit straight line to the drawdown values on semilog scale
-    x = dwL_e['dt']
-    x_ln = np.log(x)
-    y = dwL_e['dwL']
-    a, b = np.polyfit(x_ln, y, 1)
-    
-    # Compute transmissivity (T) over one logarithmic cycle
-    y_max = a * 1 + b
-    y_min = a * 10 + b
-    dsw = y_max - y_min   # [m]
-    T = 2.303 * Q / (4 * np.pi * dsw)
-    print T
-'''
-'''
-    # Plot drawdown vs time on semilog scale
-    plt.figure()
-    #plt.plot(x_ln, a * x_ln + b, '--')
-    x_plt = np.array(range(1,11,1)).reshape((10, 1))
-    plt.plot(x_plt, a * x_plt + b, 'b-')
-    plt.plot(x_ln, y, 'go', label='water level')
-    #plt.plot(1, y_max, 'bo')
-    #plt.plot(10, y_min, 'bo')
-    plt.title('Pisciarelli Tennis Club (KELLER DCX22)')
-    plt.xlabel('Time')
-    plt.ylabel('Drawdown [m]')
-    plt.legend(loc='best')
-    #plt.xscale('log')
-    plt.grid()
-    plt.tight_layout()
-    plt.savefig(wdir + 'pisc_wL_semilog_' + str(e) + '.png' , dpi=300)
-    plt.show()
-    plt.close()
-'''

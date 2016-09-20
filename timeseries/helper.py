@@ -171,9 +171,9 @@ def drawdown_event_detection(timeseries, peak_lookahead):
     """
     # detect max and min peaks in timeseries
     peak_max, peak_min = peakdetect(timeseries.values, timeseries.index, lookahead=peak_lookahead, delta=0.30)
-    if len(peak_max) == 0:
+    if len(peak_max) == 0 or len(peak_min) == 0:
         print 'Sorry no peaks found in timeseries. Try with a smaller peak_lookahead value.'
-        #sys.exit(0)
+        exit()
     else:
         # convert resulting lists to timeseries
         peak_max = np.array(peak_max)
