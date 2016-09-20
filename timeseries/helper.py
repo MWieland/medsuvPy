@@ -159,7 +159,74 @@ def drawdown_event_detection(timeseries, peak_lookahead):
     a standard peak detection function.
     
     arguments:
-    timeseries: Pandas timeseries object that holds the waterlevel as values.
+    timeseries: Pandas timeseries object that holds the waterlevel as values. Note waterlevel must be in meters below surface.
+    peak_lookahead: Distance to look ahead from a peak candidate to determine if it is the actual peak.
+                    '(sample / period) / f' where '4 >= f >= 1.25' might be a good value
+    
+    returns: Pandas dataframe with h1: waterlevel at event start time.
+                                   h1_t: event start time.
+                                   h2: waterlevel at event end time.
+                                   h2_t: event end time.
+                                   dt: timedifference between start and end.                                
+    """
+    # detect max and min peaks in timeseries
+    peak_max, peak_min = peakdetect(timeseries.values, timeseries.index, lookahead=peak_lookahead, delta=0.30)
+    if len(peak_max) == 0 or len(peak_min) == 0:
+        print 'Sorry no peaks found in timeseries. Try with a smaller peak_lookahead value.'
+        exit()
+    else:
+        # convert resulting lists to timeseries
+        peak_max = np.array(peak_max)
+        peak_min = np.array(peak_min)
+        peak_max_dates = pd.DatetimeIndex(peak_max[:,0])
+        peak_min_dates = pd.DatetimeIndex(peak_min[:,0])
+        peak_max = pd.Series(peak_max[:,1], index=peak_max_dates)
+        peak_min = pd.Series(peak_min[:,1], index=peak_min_dates)
+        
+        # create helper timeseries to identify drawdown event starts and ends from peaks
+        peak_max_ = np.zeros(shape=(peak_max.shape[0],1), dtype=int)
+        peak_min_ = np.zeros(shape=(peak_min.shape[0],1), dtype=int)
+        peak_max_.fill(2)   # identifier for event starts
+        peak_min_.fill(1)   # identifier for event ends
+        peak_max_ = pd.Series(peak_max_[:,0], index=peak_max_dates)
+        peak_min_ = pd.Series(peak_min_[:,0], index=peak_min_dates)
+        peaks_ = peak_max_.combine_first(peak_min_)
+        peaks_ = np.all(rolling_window(peaks_.values, 2) == [1, 2], axis=1)
+        
+        # extract event-relevant peaks from peaks timeseries using helper object
+        peaks = peak_max.combine_first(peak_min)
+        h1 = []
+        h1_t = []
+        h2 = []
+        h2_t = []
+        for i in range(len(peaks_)):
+            if peaks_[i] == 1:
+                # if helper object is True it is an event
+                h1.append(peaks.values[i])
+                h1_t.append(peaks.index[i])
+                h2.append(peaks.values[i+1])
+                h2_t.append(peaks.index[i+1])
+        
+        # combine peaks into events object
+        events = {'h1' : h1,
+                  'h1_t' : h1_t,
+                  'h2' : h2,
+                  'h2_t' : h2_t}
+        events = pd.DataFrame(events)
+        
+        # compute time difference between events start and end    
+        events['dt'] = events['h2_t'] - events['h1_t']
+        
+        return events
+
+
+def fill_event_detection(timeseries, peak_lookahead):
+    """
+    Performs fill event detection in waterlevel timeseries using
+    a standard peak detection function.
+    
+    arguments:
+    timeseries: Pandas timeseries object that holds the waterlevel as values. Note waterlevel must be in meters below surface.
     peak_lookahead: Distance to look ahead from a peak candidate to determine if it is the actual peak.
                     '(sample / period) / f' where '4 >= f >= 1.25' might be a good value
     

@@ -6,7 +6,6 @@ Created on 08.02.2016
 Last modified on 20.09.2016
 Author: Marc Wieland
 Description: Single-well pump test to derive transmissivity and storage coefficient from waterlevel measurements.
-             0. Optional: Convert units of input data to [m below surface]
              1. Optional: Resample and/or slice timeseries
              2. Optional: Correct waterlevel with airpressure data
              3. Detect drawdown and fill events in waterlevel timeseries (automatic or manual).
@@ -19,14 +18,13 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
                  a = slope of straight line fit
                  b = intercept of straight line fit
                  r = radius
-             6. Write events, waterlevels drawdown and fill (recovery) data into csv files and plot figures  
+             6. Write waterlevels drawdown and fill (recovery) data into csv files and plot figures  
 Reference: Zheng, Guo and Lei (2005): An improved straight-line fitting method for analyzing pumping 
             test recovery data. Ground water, 43 (6), 939-942.
-           Cooper and Jacob (1946): A generalized method for evaluating formation constants
-            and summarizing well-field history. Transactions of the American Geophysical
-            Union, 27 (5), 526-534.
             
-Note: Fill events are currently identified as time between two succeeding drawdown events.
+Note: Fill events are currently identified as being between two succeeding drawdown events.
+
+TODO: test with pisciarelli data
 ----
 '''
 
@@ -41,7 +39,7 @@ site_name = 'Observation Well'
 instrument = 'USDI Reference Data'
 ###
 wdir = '/home/mwieland/eclipse_workspace/python/medsuv/testdata/' # Work directory
-dat_wl = 'usdi_observationwell.csv' # File that holds the water level data 
+dat_wl = 'usdi_observationwell_auto.csv' # File that holds the water level data 
 col_wl_t = 't'  # Column that holds the measurement timestamps
 col_wl = 'wl_m' # Column that holds the water level measures in [m below surface] or [mbar]
 mbar2m = False  # Convert water level measures from [mbar] to [m below surface]
@@ -67,7 +65,7 @@ if_f = 'cubic'  # Temporal interpolation function for fill events
                 # {'linear', 'time', 'index', 'values', 'nearest', 'zero', 'slinear', , 'quadratic',
                 #  'cubic', 'barycentric', 'krogh', 'polynomial', 'spline', 'piecewise_polynomial', 'pchip'}
 ###
-eventdetection = 'manual'  # Drawdown event detection ('auto': automatic; 'manual': manual)
+eventdetection = 'auto'  # Drawdown event detection ('auto': automatic; 'manual': manual)
 peak_lookahead = 1  # Drawdown event detection ('auto'): distance to look ahead from a peak candidate to determine the actual peak
 # Drawdown event detection ('manual'): provide lists of start water level and timestamp (h1, h1_t) and stop water level and timestamps (h2, h2_t) of drawdown events 
 events = {'h1' : [18.654, 18.742], 'h1_t' : ['1975-05-19 08:40', '1975-05-20 11:20'], 'h2' : [19.221, 18.742], 'h2_t' : ['1975-05-19 22:00', '1975-05-20 11:20']}  
@@ -120,14 +118,18 @@ if c_ap is True:
 if eventdetection is 'auto':
     # Detect drawdown events in waterlevel timeseries and return h1, h2 and dt
     events = helper.drawdown_event_detection(wL, peak_lookahead)
-    print 'Drawdown events detected (auto)'
+    print str(len(events)) + ' drawdown events detected (auto)'
     print events
+    # Detect fill events in waterlevel timeseries and return h1, h2 and dt
+    #fill_events = helper.fill_event_detection(wL, peak_lookahead)
+    #print 'Fill events detected (auto)'
+    #print fill_events
 else:
     events = pd.DataFrame(events)
     events['h1_t'] = pd.to_datetime(events['h1_t'])
     events['h2_t'] = pd.to_datetime(events['h2_t'])
     events['dt'] = events['h2_t'] - events['h1_t']
-    print 'Drawdown events detected (manual)'
+    print str(len(events)) + ' drawdown events detected (manual)'
     print events
     
 ###############################################################
@@ -197,10 +199,11 @@ pd.options.mode.chained_assignment = None
 
 # Get fill event ids
 eid = wL_f['event'].unique()
+print str(len(eid)) + ' fill (recovery) events detected'
 
 for e in range(len(eid)):
     print '---------'
-    print 'Event ' + str(e)
+    print 'Computing T and S for (drawdown and fill) event ' + str(e)
     
     # Get tp for fill event (converted to float and unit in [min])
     tp = events[events.index == eid[e]]['dt'] / np.timedelta64(1, 'm')
@@ -243,7 +246,7 @@ for e in range(len(eid)):
     print 'a : ' + str(a)
     print 'b : ' + str(b)
     
-    # Compute transmissivity (T) in [m^2/s]
+    # Compute transmissivity (T) in [m2/s]
     T = Q / (4 * np.pi * a)
     events['T'][events.index == eid[e]] = T
     print 'T : ' + str(T)
@@ -259,6 +262,8 @@ for e in range(len(eid)):
     plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'g-', label='fill (recovery)')
     plt.plot(wL_f[wL_f['event'] == eid[e]].index, wL_f[wL_f['event'] == eid[e]]['wL'].values, 'go')
     plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
+    plt.annotate('Q = ' + str(Q) + ' m3/min; r = ' + str(r) + ' m', 
+                 xy=(1, 0), xycoords='axes fraction', fontsize=12, xytext=(-5, 5), textcoords='offset points', ha='right', va='bottom')
     plt.xlabel('Time')
     plt.ylabel('wL below surface [m]')
     plt.legend()
@@ -274,7 +279,10 @@ for e in range(len(eid)):
     plt.plot(x, a * x + b, '--')
     plt.plot(x, y, 'ro')
     plt.title(site_name + ' (' + instrument + ') - Event ' + str(eid[e]))
-    plt.annotate('T = ' + str(T) + ' m^2/min', xy=(10, 10), xytext=(10, 10))
+    plt.annotate('T = ' + str(round(T, 3)) + ' m2/min; S = ' + str(round(S, 3)) + ' (Zheng et al 2005)', 
+                 xy=(1, 0), xycoords='axes fraction', fontsize=12, xytext=(-5, 5), textcoords='offset points', ha='right', va='bottom')
+    plt.annotate('a = ' + str(round(a, 3)) + '; b = ' + str(round(b, 3)), 
+                 xy=(1, 0), xycoords='axes fraction', fontsize=12, xytext=(-5, 20), textcoords='offset points', ha='right', va='bottom')
     plt.xlabel('X')
     plt.ylabel('Y')
     plt.grid()
@@ -367,7 +375,7 @@ if len(events) > 1:
 ### Results output ###
 ######################
 # Write events dataframe to csv
-events.to_csv(wdir + 'events.csv', sep=';')
+#events.to_csv(wdir + 'events.csv', sep=';')
 
 # Write water levels for drawdown and fill events to csv
 if wL_d is not None:
