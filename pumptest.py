@@ -10,9 +10,9 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
              2. Optional: Correct waterlevel with airpressure data
              3. Detect drawdown and fill events in waterlevel timeseries (automatic or manual).
              4. Optional: Interpolate drawdown and fill (recovery) parts separately
-             5. Compute Transmissivity (T) in [m^2/s]:
+             5. Compute Transmissivity (T) in [m2/s]:
                  T = Q / (4 * np.pi * a)
-                and Storage coefficient (S) in [m] according to Zheng et al.:
+                and Storage coefficient (S) according to Zheng et al.:
                  S = -(4 * T * b) / (a * (r * r))
                  Q = pumping rate
                  a = slope of straight line fit
@@ -34,23 +34,23 @@ import timeseries.helper as helper
 site_name = 'Observation Well'
 instrument = 'USDI Reference Data'
 ###
-wdir = '/home/mwieland/Projects/medsuv_heiko/exp_pitc/marc/dcx22_new/' # Work directory
-dat_wl = 'PITC (DCX22).csv' # File that holds the water level data 
-col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
-col_wl = 'wL#' # Column that holds the water level measures in [m below surface] or [mbar]
-mbar2m = True  # Convert water level measures from [mbar] to [m below surface]
+wdir = '/home/mwieland/eclipse_workspace/python/medsuv/testdata/' # Work directory
+dat_wl = 'usdi_observationwell_auto.csv' # File that holds the water level data 
+col_wl_t = 't'  # Column that holds the measurement timestamps
+col_wl = 'wl_m' # Column that holds the water level measures in [m below surface] or [mbar]
+mbar2m = False  # Convert water level measures from [mbar] to [m below surface]
 ###
-c_ap = True    # Correct water level with air pressure data
+c_ap = False    # Correct water level with air pressure data
 dat_ap = 'AGN3baro.csv'    # File that holds the air pressure data
-col_ap_t = 'longDATE'  # Column that holds the measurement timestamps
+col_ap_t = 't'  # Column that holds the measurement timestamps
 col_ap = 'aP'   # Column that holds the air pressure measures in [mH2O] or [cmH2O]
-cm2m = True    # Convert air pressure measures from [cmH2O] to [mH2O]
+cm2m = False    # Convert air pressure measures from [cmH2O] to [mH2O]
 ###
-t_slice = True    # Temporal slicing
+t_slice = False    # Temporal slicing
 slice_t1 = '2014-06-30 00:01'   # Slicing start time
-slice_t2 = '2014-06-30 17:00'   # Slicing end time
+slice_t2 = '2014-06-30 23:59'   # Slicing end time
 ###
-t_res = True   # Temporal resampling 
+t_res = False   # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
 stat = 'mean'   # Temporal resampling statistics 
 ###
@@ -66,8 +66,8 @@ peak_lookahead = 1  # Drawdown event detection ('auto'): distance to look ahead 
 # Drawdown event detection ('manual'): provide lists of start water level and timestamp (h1, h1_t) and stop water level and timestamps (h2, h2_t) of drawdown events 
 events = {'h1' : [18.654, 18.742], 'h1_t' : ['1975-05-19 08:40', '1975-05-20 11:20'], 'h2' : [19.221, 18.742], 'h2_t' : ['1975-05-19 22:00', '1975-05-20 11:20']}  
 ###
-Q = 4.17    # Pumping rate [m3/min]
-r = 0.5   # Radius [m]
+Q = 4.61    # Pumping rate [m3/min]
+r = 30.48   # Radius [m]
 ############################################################################################################################
 
 starttime=time.time()
