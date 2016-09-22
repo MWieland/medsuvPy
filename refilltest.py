@@ -3,7 +3,7 @@
         fangaia.py
 ---------------------------
 Created on 27.01.2016
-Last modified on 15.02.2016
+Last modified on 20.09.2016
 Author: Marc Wieland
 Description: Hydraulic refill test to derive conductivity from waterlevel measurements.
              0. Resample and/or slice waterlevel timeseries (optional).
@@ -67,8 +67,8 @@ if t_res is True:
 #######################
 ### Event detection ###
 #######################
-# Detect drawdown events in waterlevel timeseries and return h1, h2 and dt
-events = helper.drawdown_event_detection(wL, peak_lookahead)
+# Detect fill events in waterlevel timeseries and return h1, h2 and dt
+events = helper.fill_event_detection(wL, peak_lookahead)
 
 # Convert dt from [ns] to [s]
 dts = np.array((events['dt'].values / 1000000000), dtype=np.float64)

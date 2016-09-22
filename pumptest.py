@@ -21,10 +21,6 @@ Description: Single-well pump test to derive transmissivity and storage coeffici
              6. Write waterlevels drawdown and fill (recovery) data into csv files and plot figures  
 Reference: Zheng, Guo and Lei (2005): An improved straight-line fitting method for analyzing pumping 
             test recovery data. Ground water, 43 (6), 939-942.
-            
-Note: Fill events are currently identified as being between two succeeding drawdown events.
-
-TODO: test with pisciarelli data
 ----
 '''
 
@@ -38,23 +34,23 @@ import timeseries.helper as helper
 site_name = 'Observation Well'
 instrument = 'USDI Reference Data'
 ###
-wdir = '/home/mwieland/eclipse_workspace/python/medsuv/testdata/' # Work directory
-dat_wl = 'usdi_observationwell_auto.csv' # File that holds the water level data 
-col_wl_t = 't'  # Column that holds the measurement timestamps
-col_wl = 'wl_m' # Column that holds the water level measures in [m below surface] or [mbar]
-mbar2m = False  # Convert water level measures from [mbar] to [m below surface]
+wdir = '/home/mwieland/Projects/medsuv_heiko/exp_pitc/marc/dcx22_new/' # Work directory
+dat_wl = 'PITC (DCX22).csv' # File that holds the water level data 
+col_wl_t = 'longDATE'  # Column that holds the measurement timestamps
+col_wl = 'wL#' # Column that holds the water level measures in [m below surface] or [mbar]
+mbar2m = True  # Convert water level measures from [mbar] to [m below surface]
 ###
-c_ap = False    # Correct water level with air pressure data
+c_ap = True    # Correct water level with air pressure data
 dat_ap = 'AGN3baro.csv'    # File that holds the air pressure data
-col_ap_t = 't'  # Column that holds the measurement timestamps
+col_ap_t = 'longDATE'  # Column that holds the measurement timestamps
 col_ap = 'aP'   # Column that holds the air pressure measures in [mH2O] or [cmH2O]
-cm2m = False    # Convert air pressure measures from [cmH2O] to [mH2O]
+cm2m = True    # Convert air pressure measures from [cmH2O] to [mH2O]
 ###
-t_slice = False    # Temporal slicing
+t_slice = True    # Temporal slicing
 slice_t1 = '2014-06-30 00:01'   # Slicing start time
-slice_t2 = '2014-06-30 23:59'   # Slicing end time
+slice_t2 = '2014-06-30 17:00'   # Slicing end time
 ###
-t_res = False   # Temporal resampling 
+t_res = True   # Temporal resampling 
 sr = "10min"    # Temporal resampling rate (e.g., 5min, H, D, M)
 stat = 'mean'   # Temporal resampling statistics 
 ###
@@ -70,8 +66,8 @@ peak_lookahead = 1  # Drawdown event detection ('auto'): distance to look ahead 
 # Drawdown event detection ('manual'): provide lists of start water level and timestamp (h1, h1_t) and stop water level and timestamps (h2, h2_t) of drawdown events 
 events = {'h1' : [18.654, 18.742], 'h1_t' : ['1975-05-19 08:40', '1975-05-20 11:20'], 'h2' : [19.221, 18.742], 'h2_t' : ['1975-05-19 22:00', '1975-05-20 11:20']}  
 ###
-Q = 4.61    # Pumping rate [m3/min]
-r = 30.48   # Radius [m]
+Q = 4.17    # Pumping rate [m3/min]
+r = 0.5   # Radius [m]
 ############################################################################################################################
 
 starttime=time.time()
@@ -111,6 +107,8 @@ if c_ap is True:
         aP = aP.resample(sr, how=stat)
     # Correct waterlevel with airpressure data
     wL = wL - aP
+
+print wL
 
 ################################
 ### Drawdown event detection ###
@@ -295,12 +293,13 @@ print '---------'
 ####################
 ### Plot results ###
 ####################
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
-ax2 = ax1.twinx()
-
 if c_ap is True:    
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    ax2 = ax1.twinx()
+    
     # Plot waterlevel timeseries with event markers and airpressure data if used
+    # TODO: invert y axis
     if t_res is True:
         title = site_name + ' (' + instrument + ' - ' + sr + ' ' + stat + ')'
         plt_save = wdir + 'wL_' + sr + stat + '.png'    
@@ -313,11 +312,10 @@ if c_ap is True:
     ax1.plot(events['h2_t'], events['h2'], 'g+', mew=2, ms=8, label='h2')
     ax1.set_ylabel('wL [m]')
     ax1.legend(loc='lower left')
-    if c_ap is True:
-        # Add air pressure
-        ax2.plot(aP.index, aP.values, 'r-', label='aP')
-        ax2.set_ylabel('aP [mH2O]')
-        ax2.legend(loc='lower right')
+    # Add air pressure
+    ax2.plot(aP.index, aP.values, 'r-', label='aP')
+    ax2.set_ylabel('aP [mH2O]')
+    ax2.legend(loc='lower right')
     #plt.xticks(rotation=15)
     plt.title(title)
     plt.xlabel('Time')
