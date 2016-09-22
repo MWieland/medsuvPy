@@ -25,9 +25,9 @@ import matplotlib.pyplot as plt
 import timeseries.helper as helper
 
 # Parameters to set ###############################################################################################
+wdir = '/home/mwieland/Projects/medsuv_heiko/exp_fang/marc/' # work directory
 dat_wl = 'FANG (DIVER) HH compensated.csv'  # waterlevel data
 dat_ev = 'FANG EP.csv'  # evapotranspiration data
-wdir = '/media/datadrive_/projects/medsuv_heiko/exp_fang/marc/' # work directory
 r = 5   # radius [m] (constant from field  experiment)
 ###
 t_slice = False    # temporal slicing
